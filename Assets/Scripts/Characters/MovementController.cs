@@ -4,200 +4,84 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-/// <summary>
-/// Movement controller for isometric grid-based movement, suitable for both player and enemies.
-/// Uses A* pathfinding on a Tilemap floor grid and moves smoothly between cell centers.
-/// </summary>
 public class MovementController : MonoBehaviour
 {
     [Header("Movement Settings")]
     [Tooltip("Units per second movement speed")]
-    public float moveSpeed = 2f;
-    [Tooltip("Time in seconds to wait before starting next move")]
-    public float turnDelay = 0.1f;
+    public float moveSpeed = 5f;
 
+    [Tooltip("Assign your dungeon floor tilemap here (or let it auto-find).")]
     [SerializeField] private Tilemap floorTilemap;
-    public Tilemap MovementTilemap => floorTilemap;
 
-    private Vector3 moveTarget;
-    private Coroutine moveCoroutine;
-    private Queue<Vector3Int> path = new Queue<Vector3Int>();
+    private Coroutine moveRoutine;
+    private bool isMoving;
 
-    public event Action OnPathComplete;
-    private bool isMoving = false;
     public bool IsMoving => isMoving;
+    public event Action OnMovementComplete;
 
-    public void Configure(Tilemap floor) => floorTilemap = floor;
-
-    /// <summary>
-    /// Enqueue a list of tile‐coordinates (from A*) and start moving along them.
-    /// Skips the first cell (current position).
-    /// </summary>
-    public void FollowPath(List<Vector3Int> cellPath)
+    void Start()
     {
+        // if you forgot to wire it up in the Inspector, try to grab it now
         if (floorTilemap == null)
         {
-            Debug.LogError("MovementController: Floor Tilemap not configured.");
-            return;
+            var dg = FindFirstObjectByType<DungeonGenerator>();
+            floorTilemap = dg != null ? dg.FloorTilemap : null;
         }
-
-        // Stop whatever we were doing
-        StopAllCoroutines();
-        path.Clear();
-
-        // Enqueue every step AFTER the starting cell
-        for (int i = 1; i < cellPath.Count; i++)
-            path.Enqueue(cellPath[i]);
-
-        // Kick off our movement coroutine
-        StartCoroutine(FollowPathRoutine());
+        if (floorTilemap == null)
+            Debug.LogError("MovementController: no FloorTilemap!", this);
     }
 
-    private IEnumerator FollowPathRoutine()
+    public void MoveToWorld(Vector3 targetWorld)
     {
-        isMoving = true;
+        if (floorTilemap == null) return;
 
-        while (path.Count > 0)
-        {
-            Vector3Int nextCell = path.Dequeue();
-            Vector3 targetWorld = floorTilemap.GetCellCenterWorld(nextCell);
+        // 1) A* on the grid
+        var start = floorTilemap.WorldToCell(transform.position);
+        var goal = floorTilemap.WorldToCell(targetWorld);
+        var path = Pathfinding.FindPath(start, goal, floorTilemap);
+        if (path == null || path.Count == 0) return;
 
-            // Smooth move towards that cell center
-            while ((Vector3)transform.position != targetWorld)
-            {
-                transform.position = Vector3.MoveTowards(transform.position,
-                                                         targetWorld,
-                                                         moveSpeed * Time.deltaTime);
-                yield return null;
-            }
+        // 2) Build world‐space waypoints (skip your own cell)
+        var worldPath = new List<Vector3>(path.Count);
+        for (int i = 1; i < path.Count; i++)
+            worldPath.Add(floorTilemap.GetCellCenterWorld(path[i]));
 
-            // small delay between steps
-            yield return new WaitForSeconds(turnDelay);
-        }
+        // 3) Last waypoint is the exact click point
+        if (worldPath.Count > 0)
+            worldPath[^1] = targetWorld;
+        else
+            worldPath.Add(targetWorld);
 
-        isMoving = false;
-        // Notify subscribers
-        OnPathComplete?.Invoke();
+        // 4) Restart the coroutine
+        if (moveRoutine != null) StopCoroutine(moveRoutine);
+        moveRoutine = StartCoroutine(FollowWorldPath(worldPath));
     }
 
-    /// <summary>
-    /// Stop any free‐move in progress.
-    /// </summary>
     public void StopMovement()
     {
-        if (moveCoroutine != null)
-            StopCoroutine(moveCoroutine);
+        if (moveRoutine != null) StopCoroutine(moveRoutine);
+        moveRoutine = null;
         isMoving = false;
     }
 
-    /// <summary>
-    /// Freely move toward this world position; updates the target if called again.
-    /// </summary>
-    public void MoveToPosition(Vector3 targetWorld)
-    {
-        moveTarget = targetWorld;
-
-        // if already moving, just update moveTarget and return
-        if (isMoving) return;
-
-        // otherwise start the chase
-        moveCoroutine = StartCoroutine(MoveRoutine());
-    }
-
-    private IEnumerator MoveRoutine()
+    private IEnumerator FollowWorldPath(List<Vector3> path)
     {
         isMoving = true;
 
-        // keep chasing while we're not at the target (or it's moving away)
-        while ((Vector3)transform.position != moveTarget)
+        foreach (var wp in path)
         {
-            transform.position = Vector3.MoveTowards(
-                transform.position,
-                moveTarget,
-                moveSpeed * Time.deltaTime
-            );
-            yield return null;
+            while (Vector3.Distance(transform.position, wp) > 0.05f)
+            {
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    wp,
+                    moveSpeed * Time.deltaTime);
+                yield return null;
+            }
         }
 
         isMoving = false;
-        moveCoroutine = null;
-        OnPathComplete?.Invoke();
-    }
-
-    /// <summary>
-    /// Simple A* implementation on the floor grid.
-    /// </summary>
-    private List<Vector3Int> FindPath(Vector3Int start, Vector3Int goal)
-    {
-        var openSet = new PriorityQueue<Vector3Int>();
-        openSet.Enqueue(start, 0);
-
-        var cameFrom = new Dictionary<Vector3Int, Vector3Int>();
-        var gScore = new Dictionary<Vector3Int, int> { [start] = 0 };
-
-        while (openSet.Count > 0)
-        {
-            var current = openSet.Dequeue();
-            if (current == goal) return ReconstructPath(cameFrom, current);
-
-            foreach (var neighbor in GetNeighbors(current))
-            {
-                int tentativeG = gScore[current] + 1;
-                if (!gScore.ContainsKey(neighbor) || tentativeG < gScore[neighbor])
-                {
-                    cameFrom[neighbor] = current;
-                    gScore[neighbor] = tentativeG;
-                    int fScore = tentativeG + Heuristic(neighbor, goal);
-                    openSet.Enqueue(neighbor, fScore);
-                }
-            }
-        }
-        return null; // no path found
-    }
-
-    private List<Vector3Int> ReconstructPath(Dictionary<Vector3Int, Vector3Int> cameFrom, Vector3Int current)
-    {
-        var totalPath = new List<Vector3Int> { current };
-        while (cameFrom.ContainsKey(current))
-        {
-            current = cameFrom[current];
-            totalPath.Insert(0, current);
-        }
-        return totalPath;
-    }
-
-    private int Heuristic(Vector3Int a, Vector3Int b)
-    {
-        // Manhattan distance
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-    }
-
-    private IEnumerable<Vector3Int> GetNeighbors(Vector3Int cell)
-    {
-        var dirs = new[] { Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right };
-        foreach (var d in dirs)
-        {
-            var n = cell + d;
-            if (floorTilemap.HasTile(n))
-                yield return n;
-        }
-    }
-
-    private class PriorityQueue<T>
-    {
-        private List<(T item, int priority)> elements = new List<(T, int)>();
-        public int Count => elements.Count;
-        public void Enqueue(T item, int priority) => elements.Add((item, priority));
-        public T Dequeue()
-        {
-            int bestIndex = 0;
-            for (int i = 1; i < elements.Count; i++)
-                if (elements[i].priority < elements[bestIndex].priority)
-                    bestIndex = i;
-
-            var bestItem = elements[bestIndex].item;
-            elements.RemoveAt(bestIndex);
-            return bestItem;
-        }
+        moveRoutine = null;
+        OnMovementComplete?.Invoke();
     }
 }
