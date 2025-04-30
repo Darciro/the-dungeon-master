@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 [RequireComponent(typeof(MovementController))]
-public class PlayerManager : MonoBehaviour
+public class PlayerManager : CharacterManager
 {
     [Header("Path Recalculation")]
     [Tooltip("Minimum seconds between path recalculations while holding.")]
@@ -20,6 +20,7 @@ public class PlayerManager : MonoBehaviour
     {
         floorTilemap = FindFirstObjectByType<DungeonGenerator>().FloorTilemap;
         movement = GetComponent<MovementController>();
+        UIManager.Instance.UpdatePlayerVitals(Stats.CurrentHP, Stats.CurrentAP, Stats.Hunger, Stats.Thirst);
     }
 
     void Update()

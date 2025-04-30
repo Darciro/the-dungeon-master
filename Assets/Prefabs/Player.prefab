@@ -304,7 +304,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 046c885eb575afa458a3444e5be86277, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
+  moveSpeed: 1
   floorTilemap: {fileID: 0}
 --- !u!114 &4966778076807962653
 MonoBehaviour:
@@ -318,6 +318,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54d553c81998add46aa441fb7639997c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Attributes:
+    Strength: 10
+    Dexterity: 10
+    Constitution: 10
+    Intelligence: 10
+    Perception: 10
+    Charisma: 10
+  Stats:
+    MaxHP: 100
+    CurrentHP: 100
+    MaxAP: 2
+    CurrentAP: 0
+    MaxHunger: 100
+    Hunger: 100
+    MaxThirst: 100
+    Thirst: 100
+  viewRadius: 5
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 0
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 0
   recalcInterval: 0.1
   worldThreshold: 0.2
 --- !u!114 &-8416719965526159547
