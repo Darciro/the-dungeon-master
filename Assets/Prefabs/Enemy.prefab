@@ -14,11 +14,12 @@ GameObject:
   - component: {fileID: 6279780838148157936}
   - component: {fileID: 8789696961751034778}
   - component: {fileID: 4996851123328083829}
-  - component: {fileID: 3251962697068827130}
-  - component: {fileID: 2972618896339178912}
+  - component: {fileID: 5603106374063608161}
+  - component: {fileID: 1697289751136538413}
+  - component: {fileID: 6284120136566801488}
   m_Layer: 9
   m_Name: Enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -122,7 +123,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3376319638871238629}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7c1e84939267c24b9b78637fe718377, type: 3}
   m_Name: 
@@ -143,13 +144,16 @@ MonoBehaviour:
     Hunger: 100
     MaxThirst: 100
     Thirst: 100
+  attackAPCost: 1
+  baseDamage: 0
   viewRadius: 5
   obstructionMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 128
   targetMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
+  attackRadius: 1.5
 --- !u!114 &8789696961751034778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -162,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 046c885eb575afa458a3444e5be86277, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
+  moveSpeed: 1
   floorTilemap: {fileID: 0}
 --- !u!114 &4996851123328083829
 MonoBehaviour:
@@ -176,10 +180,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6ad4bbe83a43e34ca9bcaba0cb645d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mover: {fileID: 0}
-  targetPlayer: {fileID: 0}
-  stepsPerTurn: 1
---- !u!50 &3251962697068827130
+  Attributes:
+    Strength: 10
+    Dexterity: 10
+    Constitution: 10
+    Intelligence: 10
+    Perception: 10
+    Charisma: 10
+  Stats:
+    MaxHP: 100
+    CurrentHP: 100
+    MaxAP: 2
+    CurrentAP: 0
+    MaxHunger: 100
+    Hunger: 100
+    MaxThirst: 100
+    Thirst: 100
+  attackAPCost: 1
+  baseDamage: 0
+  viewRadius: 1.5
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 128
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 256
+  attackRadius: 0.5
+  attackCooldown: 1
+  patrolRadius: 2
+  patrolWaitTime: 2
+--- !u!50 &5603106374063608161
 Rigidbody2D:
   serializedVersion: 5
   m_ObjectHideFlags: 0
@@ -204,10 +234,10 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
-  m_Constraints: 0
---- !u!70 &2972618896339178912
-CapsuleCollider2D:
+  m_CollisionDetection: 1
+  m_Constraints: 7
+--- !u!61 &1697289751136538413
+BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -241,5 +271,26 @@ CapsuleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Size: {x: 0.35, y: 0.6}
-  m_Direction: 0
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.14, y: 0.3}
+    newSize: {x: 0.14, y: 0.3}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 0.14, y: 0.3}
+  m_EdgeRadius: 0
+--- !u!114 &6284120136566801488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3376319638871238629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b6a405e1ab69fd458fda5e25acc81c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

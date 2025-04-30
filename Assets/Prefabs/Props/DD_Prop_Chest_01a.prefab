@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1810575652711169909}
   m_Layer: 10
   m_Name: DD_Prop_Chest_01a
-  m_TagString: Untagged
+  m_TagString: Interactable
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
