@@ -1,9 +1,7 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections.Generic;
-#if UNITY_EDITOR
 using UnityEditor;
-#endif
 
 public class DungeonGenerator : MonoBehaviour
 {
@@ -20,7 +18,6 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private RuleTile wallBaseRuleTile;
     [SerializeField] private RuleTile wallTopRuleTile;
 
-
     [Header("Generation Settings")]
     [SerializeField] private int _mapWidth = 50;
     [SerializeField] private int _mapHeight = 50;
@@ -28,7 +25,7 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private int _maxRoomSize = 12;
     [SerializeField] private int _maxRooms = 8;
     [SerializeField] private bool _generateOnStart = true;
-    [SerializeField] private int _wallYOffset = 1;
+    [SerializeField] private int _roomSpacing = 2; // minimum tiles between rooms
 
     private bool[,] _floorGrid;
     private List<Room> _rooms = new List<Room>();
@@ -60,7 +57,6 @@ public class DungeonGenerator : MonoBehaviour
             SpawnerManager.I.SpawnAll();
     }
 
-
     public void ClearMaps()
     {
         floorTilemap.ClearAllTiles();
@@ -76,6 +72,7 @@ public class DungeonGenerator : MonoBehaviour
     private void GenerateRooms()
     {
         int attempts = 0;
+        int spacing = _roomSpacing;
         while (_rooms.Count < _maxRooms && attempts < _maxRooms * 5)
         {
             int w = Random.Range(_minRoomSize, _maxRoomSize + 1);
@@ -88,7 +85,18 @@ public class DungeonGenerator : MonoBehaviour
             bool overlaps = false;
             foreach (var r in _rooms)
             {
-                if (r.Bounds.Overlaps(newRoom)) { overlaps = true; break; }
+                // expand existing room by spacing to enforce minimum gap between rooms
+                RectInt expanded = new RectInt(
+                    r.Bounds.x - spacing,
+                    r.Bounds.y - spacing,
+                    r.Bounds.width + spacing * 2,
+                    r.Bounds.height + spacing * 2
+                );
+                if (expanded.Overlaps(newRoom))
+                {
+                    overlaps = true;
+                    break;
+                }
             }
             if (!overlaps)
             {
@@ -120,18 +128,38 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates a horizontal corridor at least 3 tiles tall, centered on the given y coordinate.
+    /// </summary>
     private void CreateHorizontalTunnel(int xStart, int xEnd, int y)
     {
+        int yMin = Mathf.Max(0, y - 1);
+        int yMax = Mathf.Min(_mapHeight - 1, y + 1);
         for (int x = Mathf.Min(xStart, xEnd); x <= Mathf.Max(xStart, xEnd); x++)
-            if (y >= 0 && y < _mapHeight)
-                _floorGrid[x, y] = true;
+        {
+            if (x < 0 || x >= _mapWidth) continue;
+            for (int ty = yMin; ty <= yMax; ty++)
+            {
+                _floorGrid[x, ty] = true;
+            }
+        }
     }
 
+    /// <summary>
+    /// Creates a vertical corridor at least 3 tiles wide, centered on the given x coordinate.
+    /// </summary>
     private void CreateVerticalTunnel(int yStart, int yEnd, int x)
     {
+        int xMin = Mathf.Max(0, x - 1);
+        int xMax = Mathf.Min(_mapWidth - 1, x + 1);
         for (int y = Mathf.Min(yStart, yEnd); y <= Mathf.Max(yStart, yEnd); y++)
-            if (x >= 0 && x < _mapWidth)
-                _floorGrid[x, y] = true;
+        {
+            if (y < 0 || y >= _mapHeight) continue;
+            for (int tx = xMin; tx <= xMax; tx++)
+            {
+                _floorGrid[tx, y] = true;
+            }
+        }
     }
 
     private void GatherWallPositions()
@@ -199,24 +227,6 @@ public class DungeonGenerator : MonoBehaviour
     /// <summary>
     /// Previously this built walls manually; now uses a RuleTile for automatic sprite & collider.
     /// </summary>
-    private void PaintWallsOLD()
-    {
-        if (wallRuleTile is FloorAwareIsometricRuleTile fa)
-            fa.floorTilemap = floorTilemap;
-
-        // Clear any existing wall tiles
-        wallTilemap.ClearAllTiles();
-
-        // Paint a wall RuleTile at each wall position
-        foreach (var pos in wallPositions)
-        {
-            wallTilemap.SetTile(pos, wallRuleTile);
-        }
-
-        // Refresh to force RuleTile to re-evaluate neighbors
-        wallTilemap.RefreshAllTiles();
-    }
-
     private void PaintWalls()
     {
         // If your RuleTiles need floor context:
@@ -242,7 +252,7 @@ public class DungeonGenerator : MonoBehaviour
     private void PaintFloors()
     {
         if (floorTiles == null || floorTiles.Length == 0)
-            return;  // nothing to paint
+            return;
 
         for (int x = 0; x < _mapWidth; x++)
         {
@@ -251,13 +261,10 @@ public class DungeonGenerator : MonoBehaviour
                 if (!_floorGrid[x, y])
                     continue;
 
-                // pick a random floor tile each time
                 int idx = Random.Range(0, floorTiles.Length);
                 var chosen = floorTiles[idx];
-
                 floorTilemap.SetTile(new Vector3Int(x, y, 0), chosen);
             }
         }
     }
-
 }
