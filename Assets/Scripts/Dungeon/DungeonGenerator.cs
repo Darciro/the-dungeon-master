@@ -11,10 +11,15 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private Tilemap floorTilemap;
     public Tilemap FloorTilemap => floorTilemap;
     [SerializeField] private Tilemap wallTilemap;
+    [SerializeField] private Tilemap wallsBackTilemap;
+    [SerializeField] private Tilemap wallsFrontTilemap;
 
     [Header("Tiles")]
     [SerializeField] private TileBase[] floorTiles;
     [SerializeField] private RuleTile wallRuleTile;
+    [SerializeField] private RuleTile wallBaseRuleTile;
+    [SerializeField] private RuleTile wallTopRuleTile;
+
 
     [Header("Generation Settings")]
     [SerializeField] private int _mapWidth = 50;
@@ -194,7 +199,7 @@ public class DungeonGenerator : MonoBehaviour
     /// <summary>
     /// Previously this built walls manually; now uses a RuleTile for automatic sprite & collider.
     /// </summary>
-    private void PaintWalls()
+    private void PaintWallsOLD()
     {
         if (wallRuleTile is FloorAwareIsometricRuleTile fa)
             fa.floorTilemap = floorTilemap;
@@ -210,6 +215,28 @@ public class DungeonGenerator : MonoBehaviour
 
         // Refresh to force RuleTile to re-evaluate neighbors
         wallTilemap.RefreshAllTiles();
+    }
+
+    private void PaintWalls()
+    {
+        // If your RuleTiles need floor context:
+        if (wallBaseRuleTile is FloorAwareIsometricRuleTile fa) fa.floorTilemap = floorTilemap;
+        if (wallTopRuleTile is FloorAwareIsometricRuleTile fa2) fa2.floorTilemap = floorTilemap;
+
+        wallsBackTilemap.ClearAllTiles();
+        wallsFrontTilemap.ClearAllTiles();
+
+        foreach (Vector3Int cell in wallPositions)
+        {
+            // paint bottom-half on back map
+            wallsBackTilemap.SetTile(cell, wallBaseRuleTile);
+
+            // paint overhang on front map
+            wallsFrontTilemap.SetTile(cell, wallTopRuleTile);
+        }
+
+        wallsBackTilemap.RefreshAllTiles();
+        wallsFrontTilemap.RefreshAllTiles();
     }
 
     private void PaintFloors()
