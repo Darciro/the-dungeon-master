@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
     public void EnterCombat()
     {
         SetMode(GameMode.Combat);
+        TurnsManager.Instance.EnterCombatMode();
     }
 
     private void SetMode(GameMode newMode)

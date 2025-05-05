@@ -7,6 +7,7 @@ public class EnemyManager : CharacterManager
     public enum AIState { Patrol, Pursue, Attack }
 
     [Header("Attack")]
+    public GameObject player;
     public float attackCooldown = 1f;
     private float lastAttackTime;
 
@@ -20,6 +21,10 @@ public class EnemyManager : CharacterManager
     private AIState currentState;
     private Transform target;
     private MovementController movementController;
+    public Vector3 eyeOffset = new Vector3(0, 1.5f, 0);
+    private bool hasTriggeredCombat = false;
+    public float sightRange = 10f;
+    [Range(0, 360)] public float fieldOfView = 120f;
 
     private void Awake()
     {
@@ -29,6 +34,7 @@ public class EnemyManager : CharacterManager
 
     void Start()
     {
+        player = GameObject.FindGameObjectWithTag("Player");
         if (movementController == null)
             Debug.LogError("EnemyManager requires a MovementController component.", this);
 
@@ -45,10 +51,10 @@ public class EnemyManager : CharacterManager
                 LookForPlayer();
                 break;
             case AIState.Pursue:
-                PursueTarget();
+                // PursueTarget();
                 break;
             case AIState.Attack:
-                AttackTarget();
+                // AttackTarget();
                 break;
         }
     }
@@ -62,6 +68,8 @@ public class EnemyManager : CharacterManager
             float dist = Vector2.Distance(transform.position, hit.transform.position);
             if (!Physics2D.Raycast(transform.position, dir, dist, obstructionMask))
             {
+                if (currentState == AIState.Pursue) return;
+
                 // Player detected: switch to pursue and enter combat mode
                 target = hit.transform;
                 StopAllCoroutines();

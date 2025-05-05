@@ -14,6 +14,10 @@ public class CharacterManager : MonoBehaviour
     [Tooltip("Base damage added on top of Strength.")]
     public int baseDamage = 0;
 
+    public int Initiative { get; private set; }
+    public int CurrentAP => Stats.CurrentAP;
+    public int MaxAP => Stats.MaxAP;
+
     [Header("View Settings")]
     [SerializeField] public float viewRadius = 5f;
     [SerializeField] public LayerMask obstructionMask;
@@ -33,13 +37,28 @@ public class CharacterManager : MonoBehaviour
 
     public virtual void StartTurn()
     {
-        // refill AP at start of turn
         RestoreActionPoints();
+    }
+
+    public void RollInitiative()
+    {
+        int roll = Random.Range(1, 21);
+        Initiative = roll + Attributes.Dexterity;
+        Debug.Log($"[DM] {name} rolled initiative: {Initiative}");
+    }
+
+    public virtual void RestoreActionPoints()
+    {
+        Stats.CurrentAP = Stats.MaxAP;
+    }
+
+    public virtual void UseActionPoints(int cost)
+    {
+        Stats.CurrentAP = Mathf.Max(0, Stats.CurrentAP - cost);
     }
 
     public virtual void Attack(CharacterManager target)
     {
-        Debug.Log($"Inside Attack(): AP={Stats.CurrentAP}/{attackAPCost}");
         if (Stats.CurrentAP < attackAPCost)
         {
             Debug.Log("  – Not enough AP");
@@ -88,16 +107,6 @@ public class CharacterManager : MonoBehaviour
         GameObject popupGO = Instantiate(UIManager.Instance.damagePopupPrefab, screenPos, Quaternion.identity, UIManager.Instance.GetComponent<RectTransform>());
         DamagePopup popup = popupGO.GetComponent<DamagePopup>();
         popup.Setup(amount);
-    }
-
-    public virtual void UseActionPoints(int cost)
-    {
-        Stats.CurrentAP = Mathf.Max(0, Stats.CurrentAP - cost);
-    }
-
-    public virtual void RestoreActionPoints()
-    {
-        Stats.CurrentAP = Stats.MaxAP;
     }
 
     public virtual void ConsumeResources(int hungerCost = 1, int thirstCost = 1)

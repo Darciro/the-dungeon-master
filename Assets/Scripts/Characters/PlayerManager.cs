@@ -35,30 +35,24 @@ public class PlayerManager : CharacterManager
             Vector3 mouseW = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mouseW.z = 0f;
             Collider2D hit = Physics2D.OverlapCircle(mouseW, 1.0f, targetMask);
-            Debug.Log($"Click-hit returned: {hit?.name ?? "none"}");
 
             if (hit != null)
             {
                 // Attack logic
                 float dist = Vector2.Distance(transform.position, hit.transform.position);
                 CharacterManager enemyMgr = hit.GetComponent<CharacterManager>();
-                Debug.Log($"enemyMgr? {enemyMgr}");
 
                 if (enemyMgr != null)
                 {
-                    Debug.Log("→ About to Attack()");
-
                     // Stop current movement
                     movementController.StopMovement();
 
                     if (dist <= attackRadius)
                     {
-                        Debug.Log("Attacking immediately");
                         Attack(enemyMgr);
                     }
                     else
                     {
-                        Debug.Log("Moving into range, then attack");
                         StartCoroutine(MoveAndAttack(hit.transform));
                     }
                 }
@@ -117,5 +111,11 @@ public class PlayerManager : CharacterManager
         CharacterManager enemyMgr = enemy.GetComponent<CharacterManager>();
         if (enemyMgr != null)
             Attack(enemyMgr);
+    }
+
+    public override void StartTurn()
+    {
+        Debug.Log($"[DM] Player StartTurn overide");
+        RestoreActionPoints();
     }
 }
