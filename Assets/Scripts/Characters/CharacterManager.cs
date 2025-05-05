@@ -61,10 +61,10 @@ public class CharacterManager : MonoBehaviour
     {
         if (Stats.CurrentAP < attackAPCost)
         {
-            Debug.Log("  – Not enough AP");
+            Debug.Log($"{name} - Not enough AP");
             return;
         }
-        Debug.Log("  – Consuming AP and dealing damage");
+        Debug.Log($"{name} - Consuming AP and dealing damage");
 
         // spend AP
         UseActionPoints(attackAPCost);
